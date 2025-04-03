@@ -7,8 +7,6 @@ use std::process::{Command, Stdio};
 
 use tauri::Manager;
 
-use crate::types::STDSrtLine;
-
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct Model {
     pub name: String,
@@ -177,13 +175,14 @@ pub fn tranform_task(
     // 确保进程的标准输出可用
     if let Some(stdout) = process.stdout.take() {
         let lines_reader = BufReader::new(stdout);
+        let mut current_srt: crate::types::STDSrtLine = crate::types::STDSrtLine::default();
         for line in lines_reader.lines() {
             match line {
                 Ok(output) => {
                     if let Some(srt) =
                         parse_srt_from_str(&output, (srts.len() + 1).try_into().unwrap())
                     {
-                        if srts.len() == 0 {
+                        if srts.len() == 0 && current_srt.idx == 0 {
                             on_event
                                 .send(crate::types::WhisperTranformTaskEvent::Progress {
                                     is_success: true,
@@ -193,7 +192,31 @@ pub fn tranform_task(
                                 })
                                 .unwrap();
                         }
-                        srts.push(srt);
+                        match task.max_len_chars {
+                            Some(max_len_chars) => {
+                                if current_srt.idx == 0 {
+                                    current_srt = srt;
+                                } else {
+                                    let max_len_chars = max_len_chars as usize;
+                                    if srt.line_main.len() >= max_len_chars {
+                                        srts.push(current_srt);
+                                        srts.push(srt);
+                                        current_srt = crate::types::STDSrtLine::default();
+                                    } else {
+                                        if srt.line_main.len() + current_srt.line_main.len() > max_len_chars {
+                                            srts.push(current_srt);
+                                            current_srt = srt;
+                                        } else {
+                                            current_srt.ts_end = srt.ts_end;
+                                            current_srt.line_main = format!("{}, {}", current_srt.line_main, srt.line_main);
+                                        }
+                                    }
+                                }
+                            },
+                            None => {
+                                srts.push(srt);
+                            }
+                        }
                     }
                 }
                 Err(e) => log::error!("读取失败: {}", e),

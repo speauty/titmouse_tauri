@@ -30,3 +30,9 @@ pub enum WhisperTranformTaskEvent {
         ts: i64,
     },
 }
+
+impl Default for STDSrtLine {
+    fn default() -> Self {
+        Self {idx: 0, ts_begin: String::new(), ts_end: String::new(), line_main: String::new()}
+    }
+}
