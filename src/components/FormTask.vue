@@ -2,24 +2,24 @@
   <div class="w-full">
     <a-form ref="refFormTask" :model="formTask" :rules="taskRules" :colon="false" autocomplete="off">
       <a-form-item label="目标视频" name="path_video">
-        <a-input placeholder="请选择目标视频" v-model:value="formTask.path_video">
+        <a-input placeholder="请选择目标视频" v-model:value="formTask.path_video" :disabled="isProgressing">
           <template #addonAfter>
             <FolderOpenOutlined @click="fnSelectFileOrDirectory" />
           </template>
         </a-input>
       </a-form-item>
       <a-form-item label="应用模型" name="model">
-        <a-select placeholder="请选择应用模型" notFoundContent="暂无数据" v-model:value="formTask.model">
+        <a-select placeholder="请选择应用模型" notFoundContent="暂无数据" v-model:value="formTask.model" :disabled="isProgressing">
           <a-select-option v-for="model in models" :value="model.path">{{ model.name }}</a-select-option>
         </a-select>
       </a-form-item>
       <a-form-item label="视频语种" name="lang">
-        <a-select placeholder="请选择视频语种" notFoundContent="暂无数据" v-model:value="formTask.lang">
+        <a-select placeholder="请选择视频语种" notFoundContent="暂无数据" v-model:value="formTask.lang" :disabled="isProgressing">
           <a-select-option v-for="lanuage in lanuages" :value="lanuage.code">{{ lanuage.name_zh }}</a-select-option>
         </a-select>
       </a-form-item>
       <a-form-item label="应用显卡" name="graphic">
-        <a-select placeholder="请选择应用显卡" notFoundContent="暂无数据" v-model:value="formTask.graphic">
+        <a-select placeholder="请选择应用显卡" notFoundContent="暂无数据" v-model:value="formTask.graphic" :disabled="isProgressing">
           <a-select-option v-for="graphic in graphics" :value="graphic" :title="graphic">{{ graphic }}</a-select-option>
         </a-select>
       </a-form-item>
@@ -27,25 +27,25 @@
         <a-col>
           <a-form-item label="处理器数" name="num_cores">
             <a-input-number placeholder="请输入" class="!w-18" :defaultValue="1" :min="0" :max="16"
-              v-model:value="formTask.num_cores" />
+              v-model:value="formTask.num_cores" :disabled="isProgressing"/>
           </a-form-item>
         </a-col>
         <a-col>
           <a-form-item label="线程数量" name="num_threads">
             <a-input-number placeholder="请输入" class="!w-18" :defaultValue="1" :min="0" :max="32"
-              v-model:value="formTask.num_threads" />
+              v-model:value="formTask.num_threads" :disabled="isProgressing" />
           </a-form-item>
         </a-col>
         <a-col>
           <a-form-item label="行最大字符数" name="max_len_chars">
             <a-input-number placeholder="请输入" class="!w-18" :defaultValue="0" :min="0"
-              v-model:value="formTask.max_len_chars" />
+              v-model:value="formTask.max_len_chars" :disabled="isProgressing" />
           </a-form-item>
         </a-col>
       </a-row>
       
       <a-form-item label="保存位置" name="path_save">
-        <a-input placeholder="默认同视频位置" v-model:value="formTask.path_save">
+        <a-input placeholder="默认同视频位置" v-model:value="formTask.path_save" :disabled="isProgressing">
           <template #addonAfter>
             <FolderOpenOutlined @click="fnSelectDirectory" />
           </template>
@@ -106,6 +106,7 @@ const fnSubmitTask = () => {
         isProgressing.value = false
       }
       if (cntSuccess.value == 6) {
+        message.success(`转换成功, 总共耗时: ${data.ts_execed}s`, 5)
         formTask.value.path_video = ""
         isProgressing.value = false
         setTimeout(() => { if (!isProgressing.value) cntSuccess.value = 0 }, 5e3)
