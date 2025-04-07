@@ -31,7 +31,7 @@ pub fn run() {
             tauri::tray::TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
-                .show_menu_on_left_click(true)
+                .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "quit" => {
                         log::info!("退出");
@@ -41,10 +41,10 @@ pub fn run() {
                         if let Some(window) = app.get_webview_window("main") {
                             log::info!("显示");
                             let _ = window.show();
-                            let _ = window.set_focus();
-                            if window.is_minimized().is_ok() { // 当前窗口是否最小化
+                            if window.is_minimized().is_ok() {
                                 let _ = window.unminimize();
                             }
+                            let _ = window.set_focus();
                         }
                     }
                     "hide" => {
@@ -56,6 +56,26 @@ pub fn run() {
                     _ => {
                         log::error!("未知菜单: {:?}", event.id);
                     }
+                })
+                .on_tray_icon_event(|tray: &tauri::tray::TrayIcon, event: tauri::tray::TrayIconEvent| match event {
+                    tauri::tray::TrayIconEvent::Click {
+                        button: tauri::tray::MouseButton::Left,
+                        button_state: tauri::tray::MouseButtonState::Up,
+                        ..
+                    } => {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("main") {
+                            log::info!("显示");
+                            let _ = window.show();
+                            if window.is_minimized().is_ok() {
+                                let _ = window.unminimize();
+                            }
+                            let _ = window.set_focus();
+                        }
+                    }
+                    _ => {
+                        log::error!("未知事件: {:?}", event.id());
+                    },
                 })
                 .build(app)?;
             Ok(())
