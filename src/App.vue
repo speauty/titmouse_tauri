@@ -19,6 +19,19 @@
 <script setup lang="ts">
 import dayjs from 'dayjs'
 import ComponentFormTask from '@/components/FormTask.vue'
+import { onMounted, onUnmounted } from 'vue'
+import { listenForMin } from './libs/listeners'
+import { UnlistenFn } from '@tauri-apps/api/event'
 const textWatermark: string = import.meta.env.VITE_WATERMARK ?? 'TS'
+let fnUnlistentForMin: UnlistenFn|null
+
+onMounted(async () => {
+  if (fnUnlistentForMin) fnUnlistentForMin()
+  fnUnlistentForMin = await listenForMin()
+})
+
+onUnmounted(() => {
+  if (fnUnlistentForMin) fnUnlistentForMin()
+})
 
 </script>

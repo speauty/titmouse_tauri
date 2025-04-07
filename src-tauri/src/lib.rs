@@ -1,8 +1,9 @@
+use tauri::Manager;
+
 mod commands;
 mod languages;
 mod types;
 mod whisper;
-
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -15,10 +16,50 @@ pub fn run() {
             tauri_plugin_log::Builder::new()
                 .targets([
                     // Target::new(TargetKind::Stdout),
-                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Folder{path: std::path::Path::new("logs").to_path_buf(), file_name: Some(String::from("titmouse"))}),
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Folder {
+                        path: std::path::Path::new("logs").to_path_buf(),
+                        file_name: Some(String::from("titmouse")),
+                    }),
                 ])
                 .build(),
         )
+        .setup(|app: &mut tauri::App| {
+            let m_show = tauri::menu::MenuItem::with_id(app, "show", "显示", true, None::<&str>)?;
+            let m_hide = tauri::menu::MenuItem::with_id(app, "hide", "隐藏", true, None::<&str>)?;
+            let m_quit = tauri::menu::MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
+            let menu = tauri::menu::Menu::with_items(app, &[&m_show, &m_hide, &m_quit])?;
+            tauri::tray::TrayIconBuilder::new()
+                .icon(app.default_window_icon().unwrap().clone())
+                .menu(&menu)
+                .show_menu_on_left_click(true)
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "quit" => {
+                        log::info!("退出");
+                        app.exit(0);
+                    }
+                    "show" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            log::info!("显示");
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                            if window.is_minimized().is_ok() { // 当前窗口是否最小化
+                                let _ = window.unminimize();
+                            }
+                        }
+                    }
+                    "hide" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            log::info!("隐藏");
+                            let _ = window.hide();
+                        }
+                    }
+                    _ => {
+                        log::error!("未知菜单: {:?}", event.id);
+                    }
+                })
+                .build(app)?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             commands::languages,
             commands::models,
