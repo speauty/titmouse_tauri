@@ -67,12 +67,14 @@
 import { FolderOpenOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { open } from '@tauri-apps/plugin-dialog'
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { commandGraphics, commandModels, commandLanuages, commandUploadTask, commandCheckVideoPathIsValid } from '@/libs/commands'
 import { Language, Model, TaskItem, TaskEventData, TaskEvent } from '@/types/type'
 import { Rule } from 'ant-design-vue/es/form'
 import { Channel } from '@tauri-apps/api/core'
 import dayjs from 'dayjs'
+import { UnlistenFn } from '@tauri-apps/api/event'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 
 const lanuages = ref<Language[]>([])
 const models = ref<Model[]>([])
@@ -89,6 +91,7 @@ const taskRules: Record<string, Rule[]> = {
 const cntSuccess = ref<number>(0)
 const isProgressing = ref<boolean>(false)
 
+let fnUnlistentForDrop: UnlistenFn|null
 
 const fnSubmitTask = () => {
   cntSuccess.value = 0
@@ -160,7 +163,21 @@ watch((): string => formTask.value.path_video, async (pathNew: string, pathOld: 
   formTask.value.path_video = latestVideoPathValid.value
 })
 
-onMounted(() => {
+const fnDropEvent = async () => {
+  if (fnUnlistentForDrop) fnUnlistentForDrop()
+  fnUnlistentForDrop = await getCurrentWindow().onDragDropEvent(async (event) => {
+    if (event.payload.type === 'drop' && event.payload.paths.length == 1) {
+      formTask.value.path_video = event.payload.paths[0]
+    }
+  })
+}
+
+onMounted(async () => {
   fnLoadOptions()
+  await fnDropEvent()
+})
+
+onUnmounted(() => {
+  if (fnUnlistentForDrop) fnUnlistentForDrop()
 })
 </script>
