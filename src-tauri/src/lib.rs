@@ -23,6 +23,15 @@ pub fn run() {
                 ])
                 .build(),
         )
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(window) = app.webview_windows().values().next() {
+                let _ = window.show();
+                if window.is_minimized().is_ok() {
+                    let _ = window.unminimize();
+                }
+                let _ = window.set_focus();
+            }
+        }))
         .setup(|app: &mut tauri::App| {
             let m_show = tauri::menu::MenuItem::with_id(app, "show", "显示", true, None::<&str>)?;
             let m_hide = tauri::menu::MenuItem::with_id(app, "hide", "隐藏", true, None::<&str>)?;
@@ -57,26 +66,28 @@ pub fn run() {
                         log::error!("未知菜单: {:?}", event.id);
                     }
                 })
-                .on_tray_icon_event(|tray: &tauri::tray::TrayIcon, event: tauri::tray::TrayIconEvent| match event {
-                    tauri::tray::TrayIconEvent::Click {
-                        button: tauri::tray::MouseButton::Left,
-                        button_state: tauri::tray::MouseButtonState::Up,
-                        ..
-                    } => {
-                        let app = tray.app_handle();
-                        if let Some(window) = app.get_webview_window("main") {
-                            log::info!("显示");
-                            let _ = window.show();
-                            if window.is_minimized().is_ok() {
-                                let _ = window.unminimize();
+                .on_tray_icon_event(
+                    |tray: &tauri::tray::TrayIcon, event: tauri::tray::TrayIconEvent| match event {
+                        tauri::tray::TrayIconEvent::Click {
+                            button: tauri::tray::MouseButton::Left,
+                            button_state: tauri::tray::MouseButtonState::Up,
+                            ..
+                        } => {
+                            let app = tray.app_handle();
+                            if let Some(window) = app.get_webview_window("main") {
+                                log::info!("显示");
+                                let _ = window.show();
+                                if window.is_minimized().is_ok() {
+                                    let _ = window.unminimize();
+                                }
+                                let _ = window.set_focus();
                             }
-                            let _ = window.set_focus();
                         }
-                    }
-                    _ => {
-                        log::error!("未知事件: {:?}", event.id());
+                        _ => {
+                            log::error!("未知事件: {:?}", event.id());
+                        }
                     },
-                })
+                )
                 .build(app)?;
             Ok(())
         })
@@ -88,7 +99,7 @@ pub fn run() {
             commands::action_upload_task
         ])
         .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .expect("应用崩溃");
 }
 
 fn init() {
